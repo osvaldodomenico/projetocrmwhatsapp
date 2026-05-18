@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessageSquare, MessagesSquare, Tag, ChevronRight, UserCog, Kanban, FileText } from 'lucide-react'
+import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessagesSquare, Tag, ChevronRight, UserCog, Kanban, FileText } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,12 +25,10 @@ export function Sidebar() {
     <aside className="w-64 min-h-screen bg-slate-900 border-r border-slate-800 flex flex-col">
       <div className="p-6 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-purple-600/20">
-            <MessageSquare className="h-5 w-5 text-purple-400" />
-          </div>
+          <Image src="/logo.png" alt="Legis" width={36} height={36} className="rounded-lg flex-shrink-0" />
           <div>
-            <h1 className="text-white font-bold text-sm">Shift CRM Whatsapp</h1>
-            <p className="text-slate-500 text-xs">CRM</p>
+            <h1 className="text-white font-bold text-sm">Legis CRM</h1>
+            <p className="text-slate-500 text-xs">Whatsapp</p>
           </div>
         </div>
       </div>
