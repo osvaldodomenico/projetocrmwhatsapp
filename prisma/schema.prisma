@@ -104,7 +104,8 @@ model User {
   followUps    FollowUp[]
   campaigns    Campaign[]
   auditLogs    AuditLog[]
-  importLogs   ImportLog[]
+  importLogs        ImportLog[]
+  messageTemplates  MessageTemplate[]
 
   @@map("crmwhatsapp_users")
 }
@@ -172,6 +173,8 @@ model Contact {
   score           Int             @default(0)
   lastContactAt   DateTime?
   nextFollowupAt  DateTime?
+  leadStage       String          @default("NOVO")
+  customFields    Json?
   optOut          Boolean         @default(false)
   archivedAt      DateTime?
   createdAt       DateTime        @default(now())
@@ -370,4 +373,18 @@ model ImportLog {
   user User? @relation(fields: [userId], references: [id])
 
   @@map("crmwhatsapp_import_logs")
+}
+
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  content   String   @db.Text
+  category  String?
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("crmwhatsapp_message_templates")
 }
