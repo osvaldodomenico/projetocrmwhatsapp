@@ -1,0 +1,373 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  FOLLOW_UP
+  NO_RESPONSE
+  INVALID_NUMBER
+  DO_NOT_CONTACT
+  CONVERTED
+  LOST
+}
+
+enum LeadTemperature {
+  COLD
+  WARM
+  HOT
+}
+
+enum InteractionType {
+  WHATSAPP
+  CALL
+  VISIT
+  NOTE
+  SYSTEM
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  FINISHED
+  CANCELED
+}
+
+enum CampaignContactStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  REPLIED
+  FAILED
+  SKIPPED
+}
+
+enum FollowUpPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FollowUpStatus {
+  PENDING
+  DONE
+  CANCELED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  LOCATION
+  STICKER
+}
+
+enum WhatsAppSessionStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+  QR_CODE
+  ERROR
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   @db.VarChar(255)
+  role          String    @default("agent")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  interactions Interaction[]
+  followUps    FollowUp[]
+  campaigns    Campaign[]
+  auditLogs    AuditLog[]
+  importLogs   ImportLog[]
+
+  @@map("crmwhatsapp_users")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?   @db.Text
+  access_token      String?   @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?   @db.Text
+  session_state     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("crmwhatsapp_accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("crmwhatsapp_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("crmwhatsapp_verification_tokens")
+}
+
+model Contact {
+  id              String          @id @default(cuid())
+  firstName       String
+  lastName        String?
+  fullName        String
+  phone           String
+  normalizedPhone String          @unique
+  church          String?
+  groupName       String?
+  neighborhood    String?
+  city            String?
+  state           String?
+  birthDate       DateTime?
+  notes           String?         @db.Text
+  avatar          String?
+  source          String?         @default("manual")
+  status          ContactStatus   @default(ACTIVE)
+  temperature     LeadTemperature @default(COLD)
+  score           Int             @default(0)
+  lastContactAt   DateTime?
+  nextFollowupAt  DateTime?
+  optOut          Boolean         @default(false)
+  archivedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tags             ContactTag[]
+  interactions     Interaction[]
+  followUps        FollowUp[]
+  campaignContacts CampaignContact[]
+  whatsappMessages WhatsAppMessage[]
+
+  @@index([normalizedPhone])
+  @@index([status])
+  @@index([temperature])
+  @@index([church])
+  @@index([groupName])
+  @@index([neighborhood])
+  @@map("crmwhatsapp_contacts")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+
+  contacts ContactTag[]
+
+  @@map("crmwhatsapp_tags")
+}
+
+model ContactTag {
+  id        String   @id @default(cuid())
+  contactId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, tagId])
+  @@map("crmwhatsapp_contact_tags")
+}
+
+model Interaction {
+  id        String          @id @default(cuid())
+  contactId String
+  userId    String?
+  type      InteractionType @default(NOTE)
+  message   String          @db.Text
+  summary   String?         @db.Text
+  sentiment String?
+  createdAt DateTime        @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([contactId])
+  @@index([createdAt])
+  @@map("crmwhatsapp_interactions")
+}
+
+model FollowUp {
+  id          String           @id @default(cuid())
+  contactId   String
+  assignedTo  String?
+  dueDate     DateTime
+  priority    FollowUpPriority @default(MEDIUM)
+  status      FollowUpStatus   @default(PENDING)
+  notes       String?          @db.Text
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [assignedTo], references: [id])
+
+  @@index([contactId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("crmwhatsapp_follow_ups")
+}
+
+model Campaign {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?        @db.Text
+  messageTemplate String         @db.Text
+  status          CampaignStatus @default(DRAFT)
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdById     String?
+  minDelay        Int            @default(20)
+  maxDelay        Int            @default(90)
+  dailyLimit      Int            @default(200)
+  sessionId       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  createdBy        User?             @relation(fields: [createdById], references: [id])
+  campaignContacts CampaignContact[]
+  session          WhatsAppSession?  @relation(fields: [sessionId], references: [id])
+
+  @@index([status])
+  @@map("crmwhatsapp_campaigns")
+}
+
+model CampaignContact {
+  id          String                @id @default(cuid())
+  campaignId  String
+  contactId   String
+  status      CampaignContactStatus @default(PENDING)
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  repliedAt   DateTime?
+  errorMsg    String?
+  createdAt   DateTime              @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId, status])
+  @@map("crmwhatsapp_campaign_contacts")
+}
+
+model WhatsAppSession {
+  id        String                @id @default(cuid())
+  name      String                @unique
+  status    WhatsAppSessionStatus @default(DISCONNECTED)
+  qrCode    String?               @db.Text
+  phone     String?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  messages  WhatsAppMessage[]
+  campaigns Campaign[]
+
+  @@map("crmwhatsapp_whatsapp_sessions")
+}
+
+model WhatsAppMessage {
+  id          String           @id @default(cuid())
+  contactId   String
+  sessionId   String?
+  campaignId  String?
+  direction   MessageDirection
+  messageType MessageType      @default(TEXT)
+  body        String?          @db.Text
+  mediaUrl    String?
+  externalId  String?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime         @default(now())
+
+  contact Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  session WhatsAppSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([contactId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("crmwhatsapp_whatsapp_messages")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  entity    String
+  entityId  String
+  action    String
+  oldData   Json?
+  newData   Json?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("crmwhatsapp_audit_logs")
+}
+
+model ImportLog {
+  id           String   @id @default(cuid())
+  fileName     String
+  totalRows    Int
+  imported     Int      @default(0)
+  updated      Int      @default(0)
+  skipped      Int      @default(0)
+  errors       Int      @default(0)
+  errorDetails Json?
+  userId       String?
+  createdAt    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("crmwhatsapp_import_logs")
+}
