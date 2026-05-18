@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessageSquare, MessagesSquare, Tag, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessageSquare, MessagesSquare, Tag, ChevronRight, UserCog } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/follow-ups', label: 'Follow-ups', icon: Calendar },
   { href: '/tags', label: 'Tags', icon: Tag },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
+  { href: '/usuarios', label: 'Usuários', icon: UserCog },
 ]
 
 export function Sidebar() {
