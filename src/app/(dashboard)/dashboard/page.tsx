@@ -27,9 +27,9 @@ export default function DashboardPage() {
   )
 
   const tempData = [
-    { name: 'HOT', value: stats.temperature.hot },
-    { name: 'WARM', value: stats.temperature.warm },
-    { name: 'COLD', value: stats.temperature.cold },
+    { name: '🔴 Quente', value: stats.temperature.hot },
+    { name: '🟡 Morno', value: stats.temperature.warm },
+    { name: '🔵 Frio', value: stats.temperature.cold },
   ]
 
   const statCards = [
