@@ -108,7 +108,7 @@ export default function DashboardPage() {
               <XAxis
                 dataKey="date"
                 tick={{ fill: '#94a3b8', fontSize: 10 }}
-                tickFormatter={(d: string) => format(new Date(d + 'T00:00:00'), 'dd/MM', { locale: ptBR })}
+                tickFormatter={(d: string) => { try { const dt = new Date(String(d).slice(0,10) + 'T12:00:00'); return isNaN(dt.getTime()) ? '' : format(dt, 'dd/MM', { locale: ptBR }) } catch { return '' } }}
                 axisLine={false}
                 tickLine={false}
                 interval="preserveStartEnd"
@@ -116,7 +116,7 @@ export default function DashboardPage() {
               <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#fff' }}
-                labelFormatter={(d) => format(new Date(String(d) + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                labelFormatter={(d) => { try { const dt = new Date(String(d).slice(0,10) + 'T12:00:00'); return isNaN(dt.getTime()) ? String(d) : format(dt, 'dd/MM/yyyy', { locale: ptBR }) } catch { return String(d) } }}
               />
               <Line type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={2} dot={false} />
             </LineChart>
