@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     search: searchParams.get('search') ?? undefined,
     status: searchParams.get('status') ?? undefined,
     temperature: searchParams.get('temperature') ?? undefined,
+    leadStage: searchParams.get('leadStage') ?? undefined,
     church: searchParams.get('church') ?? undefined,
     groupName: searchParams.get('groupName') ?? undefined,
     neighborhood: searchParams.get('neighborhood') ?? undefined,

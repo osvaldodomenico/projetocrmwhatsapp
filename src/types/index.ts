@@ -30,6 +30,7 @@ export type ContactFilters = {
   search?: string
   status?: string
   temperature?: string
+  leadStage?: string
   church?: string
   groupName?: string
   neighborhood?: string

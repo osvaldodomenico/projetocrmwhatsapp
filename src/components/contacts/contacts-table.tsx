@@ -23,6 +23,7 @@ type Contact = {
   neighborhood: string | null
   status: string
   temperature: string
+  leadStage: string | null
   score: number
   lastContactAt: string | null
   tags: { tag: { id: string; name: string; color: string } }[]
@@ -61,6 +62,8 @@ export function ContactsTable() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [tempFilter, setTempFilter] = useState('all')
+  const [leadStageFilter, setLeadStageFilter] = useState('all')
+  const [churchFilter, setChurchFilter] = useState('')
   const [rowSelection, setRowSelection] = useState({})
   const [importOpen, setImportOpen] = useState(false)
   const limit = 50
@@ -74,6 +77,8 @@ export function ContactsTable() {
         ...(search && { search }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(tempFilter !== 'all' && { temperature: tempFilter }),
+        ...(leadStageFilter !== 'all' && { leadStage: leadStageFilter }),
+        ...(churchFilter && { church: churchFilter }),
       })
       const res = await fetch(`/api/contacts?${params}`)
       const json = await res.json()
@@ -83,7 +88,7 @@ export function ContactsTable() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter, tempFilter, limit])
+  }, [page, search, statusFilter, tempFilter, leadStageFilter, churchFilter, limit])
 
   useEffect(() => { fetchContacts() }, [fetchContacts])
 
@@ -140,6 +145,29 @@ export function ContactsTable() {
           <span className="text-slate-300 text-xs">{row.original.score}</span>
         </div>
       ),
+    },
+    {
+      accessorKey: 'leadStage',
+      header: 'Etapa',
+      cell: ({ row }) => {
+        const stageLabels: Record<string, string> = {
+          NOVO: 'Novo', QUALIFICANDO: 'Qualificando', PROPOSTA: 'Proposta',
+          FECHADO: 'Fechado', PERDIDO: 'Perdido',
+        }
+        const stageColors: Record<string, string> = {
+          NOVO: 'bg-slate-500/20 text-slate-300',
+          QUALIFICANDO: 'bg-blue-500/20 text-blue-300',
+          PROPOSTA: 'bg-yellow-500/20 text-yellow-300',
+          FECHADO: 'bg-green-500/20 text-green-300',
+          PERDIDO: 'bg-red-500/20 text-red-300',
+        }
+        const stage = row.original.leadStage ?? 'NOVO'
+        return (
+          <Badge className={cn('text-xs', stageColors[stage] ?? 'bg-slate-500/20 text-slate-300')}>
+            {stageLabels[stage] ?? stage}
+          </Badge>
+        )
+      },
     },
     {
       accessorKey: 'tags',
@@ -234,6 +262,27 @@ export function ContactsTable() {
             <SelectItem value="COLD">Frio</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={leadStageFilter} onValueChange={(v) => { setLeadStageFilter(v ?? 'all'); setPage(1) }}>
+          <SelectTrigger className="w-36 bg-slate-800 border-slate-700 text-slate-300">
+            <SelectValue placeholder="Etapa" />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectItem value="all">Todas etapas</SelectItem>
+            <SelectItem value="NOVO">Novo</SelectItem>
+            <SelectItem value="QUALIFICANDO">Qualificando</SelectItem>
+            <SelectItem value="PROPOSTA">Proposta</SelectItem>
+            <SelectItem value="FECHADO">Fechado</SelectItem>
+            <SelectItem value="PERDIDO">Perdido</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Input
+          placeholder="Igreja..."
+          value={churchFilter}
+          onChange={(e) => { setChurchFilter(e.target.value); setPage(1) }}
+          className="w-36 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+        />
 
         <div className="flex items-center gap-2 ml-auto">
           {selectedCount > 0 && (

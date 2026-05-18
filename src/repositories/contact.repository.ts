@@ -4,7 +4,7 @@ import { ContactFilters, PaginatedResult, ContactWithTags } from '@/types'
 export class ContactRepository {
   async findMany(filters: ContactFilters): Promise<PaginatedResult<ContactWithTags>> {
     const {
-      search, status, temperature, church, groupName, neighborhood, tagId,
+      search, status, temperature, leadStage, church, groupName, neighborhood, tagId,
       page = 1, limit = 50, orderBy = 'createdAt', order = 'desc'
     } = filters
 
@@ -20,6 +20,7 @@ export class ContactRepository {
     }
     if (status) where.status = status
     if (temperature) where.temperature = temperature
+    if (leadStage) where.leadStage = leadStage
     if (church) where.church = { contains: church }
     if (groupName) where.groupName = { contains: groupName }
     if (neighborhood) where.neighborhood = { contains: neighborhood }
