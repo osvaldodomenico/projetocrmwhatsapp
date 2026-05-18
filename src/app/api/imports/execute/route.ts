@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const mappingRaw = formData.get('mapping') as string
   if (!file || !mappingRaw) return NextResponse.json({ error: 'Missing data' }, { status: 400 })
 
-  const userId = (session?.user as any)?.id ?? (session as any)?.userId ?? ''
+  const userId = (session?.user as any)?.id ?? (session as any)?.userId ?? null
 
   try {
     const mapping = JSON.parse(mappingRaw)

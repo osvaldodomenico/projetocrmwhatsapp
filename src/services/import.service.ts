@@ -60,7 +60,7 @@ export async function parseFile(buffer: Buffer, _fileName: string): Promise<Impo
 export async function executeImport(
   buffer: Buffer,
   mapping: ColumnMapping,
-  userId: string
+  userId: string | null
 ): Promise<{ imported: number; updated: number; skipped: number; errors: number; errorDetails: any[] }> {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true })
   const ws = wb.Sheets[wb.SheetNames[0]]
