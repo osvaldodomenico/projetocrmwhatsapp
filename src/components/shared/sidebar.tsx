@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessageSquare, MessagesSquare, Tag, ChevronRight, UserCog } from 'lucide-react'
+import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessageSquare, MessagesSquare, Tag, ChevronRight, UserCog, Kanban } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/contatos', label: 'Contatos', icon: Users },
+  { href: '/pipeline', label: 'Pipeline', icon: Kanban },
   { href: '/conversas', label: 'Conversas', icon: MessagesSquare },
   { href: '/campanhas', label: 'Campanhas', icon: Megaphone },
   { href: '/follow-ups', label: 'Follow-ups', icon: Calendar },
