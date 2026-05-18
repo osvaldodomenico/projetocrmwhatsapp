@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CRMWhatsApp',
+  title: 'Shift CRM Whatsapp',
   description: 'CRM de relacionamento via WhatsApp',
 }
 
