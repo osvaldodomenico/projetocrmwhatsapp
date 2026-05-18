@@ -1,17 +1,17 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { toast } from 'sonner'
-import { Phone, Star, RefreshCw } from 'lucide-react'
+import { Phone, Star, RefreshCw, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 const STAGES = [
   { key: 'NOVO', label: 'Novo', color: 'border-slate-500', header: 'bg-slate-700' },
-  { key: 'QUALIFICANDO', label: 'Qualificando', color: 'border-blue-500', header: 'bg-blue-900/50' },
-  { key: 'PROPOSTA', label: 'Proposta', color: 'border-yellow-500', header: 'bg-yellow-900/50' },
-  { key: 'FECHADO', label: 'Fechado', color: 'border-green-500', header: 'bg-green-900/50' },
+  { key: 'EM CONTATO', label: 'Em Contato', color: 'border-blue-500', header: 'bg-blue-900/50' },
+  { key: 'FINALIZADO', label: 'Finalizado', color: 'border-green-500', header: 'bg-green-900/50' },
   { key: 'PERDIDO', label: 'Perdido', color: 'border-red-500', header: 'bg-red-900/50' },
 ]
 
@@ -19,7 +19,8 @@ const TEMP_ICON: Record<string, string> = { HOT: '🔴', WARM: '🟡', COLD: '�
 
 type Contact = {
   id: string; fullName: string; normalizedPhone: string; leadStage: string
-  temperature: string; score: number; church: string | null; lastContactAt: string | null
+  temperature: string; score: number; church: string | null; neighborhood: string | null
+  city: string | null; lastContactAt: string | null
   tags: { tag: { name: string; color: string } }[]
 }
 
@@ -28,6 +29,9 @@ type Grouped = Record<string, Contact[]>
 export function PipelineBoard() {
   const [grouped, setGrouped] = useState<Grouped>({})
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [cityFilter, setCityFilter] = useState('')
+  const [phoneFilter, setPhoneFilter] = useState('')
 
   async function load() {
     setLoading(true)
@@ -38,6 +42,32 @@ export function PipelineBoard() {
   }
 
   useEffect(() => { load() }, [])
+
+  const filtered = useMemo(() => {
+    const result: Grouped = {}
+    STAGES.forEach(s => { result[s.key] = [] })
+
+    const nameLower = search.toLowerCase()
+    const cityLower = cityFilter.toLowerCase()
+    const phoneLower = phoneFilter.replace(/\D/g, '')
+
+    for (const key of STAGES.map(s => s.key)) {
+      const contacts = grouped[key] ?? []
+      result[key] = contacts.filter(c => {
+        if (nameLower && !c.fullName.toLowerCase().includes(nameLower)) return false
+        if (cityLower) {
+          const inNeighborhood = c.neighborhood?.toLowerCase().includes(cityLower)
+          const inCity = c.city?.toLowerCase().includes(cityLower)
+          if (!inNeighborhood && !inCity) return false
+        }
+        if (phoneLower && !c.normalizedPhone.replace(/\D/g, '').includes(phoneLower)) return false
+        return true
+      })
+    }
+    return result
+  }, [grouped, search, cityFilter, phoneFilter])
+
+  const hasFilter = search || cityFilter || phoneFilter
 
   async function onDragEnd(result: DropResult) {
     if (!result.destination) return
@@ -65,10 +95,11 @@ export function PipelineBoard() {
     }
   }
 
-  const totalByStage = (key: string) => grouped[key]?.length ?? 0
+  const totalByStage = (key: string) => filtered[key]?.length ?? 0
 
   return (
     <div className="p-6 space-y-4 h-full flex flex-col">
+      {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-xl font-bold text-white">Pipeline</h1>
@@ -77,6 +108,47 @@ export function PipelineBoard() {
         <Button variant="outline" size="sm" onClick={load} className="border-slate-600 text-slate-300">
           <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
         </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-3 flex-shrink-0">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nome..."
+            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+          />
+        </div>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            value={cityFilter}
+            onChange={e => setCityFilter(e.target.value)}
+            placeholder="Bairro ou cidade..."
+            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+          />
+        </div>
+        <div className="relative flex-1 max-w-xs">
+          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            value={phoneFilter}
+            onChange={e => setPhoneFilter(e.target.value)}
+            placeholder="WhatsApp..."
+            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+          />
+        </div>
+        {hasFilter && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setSearch(''); setCityFilter(''); setPhoneFilter('') }}
+            className="text-slate-400 hover:text-white"
+          >
+            <X className="h-4 w-4 mr-1" /> Limpar
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -97,7 +169,7 @@ export function PipelineBoard() {
                       {...provided.droppableProps}
                       className={`flex-1 p-2 space-y-2 min-h-32 overflow-y-auto transition-colors ${snapshot.isDraggingOver ? 'bg-slate-700/30' : ''}`}
                     >
-                      {(grouped[stage.key] ?? []).map((contact, index) => (
+                      {(filtered[stage.key] ?? []).map((contact, index) => (
                         <Draggable key={contact.id} draggableId={contact.id} index={index}>
                           {(provided, snapshot) => (
                             <div
@@ -114,8 +186,10 @@ export function PipelineBoard() {
                                 <Phone className="h-3 w-3" />
                                 <span>{contact.normalizedPhone}</span>
                               </div>
-                              {contact.church && (
-                                <p className="text-slate-500 text-xs mt-1 truncate">{contact.church}</p>
+                              {(contact.neighborhood || contact.city) && (
+                                <p className="text-slate-500 text-xs mt-1 truncate">
+                                  {[contact.neighborhood, contact.city].filter(Boolean).join(', ')}
+                                </p>
                               )}
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex gap-1 flex-wrap">

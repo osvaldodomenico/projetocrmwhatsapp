@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
   const { contactId } = await params
   const { leadStage } = await req.json()
 
-  const validStages = ['NOVO', 'QUALIFICANDO', 'PROPOSTA', 'FECHADO', 'PERDIDO']
+  const validStages = ['NOVO', 'EM CONTATO', 'FINALIZADO', 'PERDIDO']
   if (!validStages.includes(leadStage)) return NextResponse.json({ error: 'Invalid stage' }, { status: 400 })
 
   const contact = await prisma.contact.update({
