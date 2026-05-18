@@ -25,7 +25,7 @@ export function Sidebar() {
             <MessageSquare className="h-5 w-5 text-purple-400" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-sm">CRMWhatsApp</h1>
+            <h1 className="text-white font-bold text-sm">Shift CRM Whatsapp</h1>
             <p className="text-slate-500 text-xs">CRM</p>
           </div>
         </div>
