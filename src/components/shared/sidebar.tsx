@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { LayoutDashboard, Users, Megaphone, Calendar, Settings, MessageSquare, Tag, ChevronRight } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/contatos', label: 'Contatos', icon: Users },
   { href: '/campanhas', label: 'Campanhas', icon: Megaphone },
   { href: '/follow-ups', label: 'Follow-ups', icon: Calendar },
@@ -32,7 +32,7 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link key={item.href} href={item.href}
               className={cn(
