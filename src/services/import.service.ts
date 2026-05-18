@@ -67,67 +67,88 @@ export async function executeImport(
   let imported = 0, updated = 0, skipped = 0, errors = 0
   const errorDetails: any[] = []
 
+  // 1. Parse and validate all rows in memory (no DB yet)
+  type ContactData = {
+    firstName: string
+    lastName: string | null
+    fullName: string
+    phone: string
+    normalizedPhone: string
+    source: string
+    church?: string
+    groupName?: string
+    neighborhood?: string
+  }
+  const validRows: { rowIndex: number; data: ContactData }[] = []
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
+    const rawPhone = String(row[mapping.phone] ?? '').trim()
+    if (!rawPhone || rawPhone.length < 8) { skipped++; continue }
+
+    const firstName = String(row[mapping.firstName] ?? '').trim()
+    if (!firstName) { skipped++; continue }
+
+    const normalizedPhone = normalizePhone(rawPhone)
+    const lastName = mapping.lastName ? String(row[mapping.lastName] ?? '').trim() || null : null
+    const fullName = [firstName, lastName].filter(Boolean).join(' ')
+
+    const data: ContactData = { firstName, lastName, fullName, phone: rawPhone, normalizedPhone, source: 'import' }
+
+    if (mapping.church) { const v = String(row[mapping.church] ?? '').trim(); if (v) data.church = v }
+    if (mapping.groupName) { const v = String(row[mapping.groupName] ?? '').trim(); if (v) data.groupName = v }
+    if (mapping.neighborhood) { const v = String(row[mapping.neighborhood] ?? '').trim(); if (v) data.neighborhood = v }
+
+    validRows.push({ rowIndex: i + 2, data })
+  }
+
+  if (validRows.length === 0) {
+    await prisma.importLog.create({
+      data: { fileName: 'import.xlsx', totalRows: rows.length, imported, updated, skipped, errors, errorDetails, userId },
+    })
+    return { imported, updated, skipped, errors, errorDetails }
+  }
+
+  // 2. ONE query to find all existing phones
+  const allPhones = validRows.map(r => r.data.normalizedPhone)
+  const existing = await prisma.contact.findMany({
+    where: { normalizedPhone: { in: allPhones } },
+    select: { normalizedPhone: true },
+  })
+  const existingSet = new Set(existing.map(c => c.normalizedPhone))
+
+  // 3. Split into new vs existing
+  const newRows = validRows.filter(r => !existingSet.has(r.data.normalizedPhone))
+  const updateRows = validRows.filter(r => existingSet.has(r.data.normalizedPhone))
+
+  // 4. Batch create all new records in ONE query
+  if (newRows.length > 0) {
     try {
-      const rawPhone = String(row[mapping.phone] ?? '').trim()
-      if (!rawPhone || rawPhone.length < 8) { skipped++; continue }
-
-      const firstName = String(row[mapping.firstName] ?? '').trim()
-      if (!firstName) { skipped++; continue }
-
-      const normalizedPhone = normalizePhone(rawPhone)
-      const lastName = mapping.lastName ? String(row[mapping.lastName] ?? '').trim() || undefined : undefined
-      const fullName = [firstName, lastName].filter(Boolean).join(' ')
-
-      const data: any = {
-        firstName,
-        lastName: lastName ?? null,
-        fullName,
-        phone: rawPhone,
-        normalizedPhone,
-        source: 'import',
-      }
-
-      if (mapping.church) {
-        const v = String(row[mapping.church] ?? '').trim()
-        if (v) data.church = v
-      }
-      if (mapping.groupName) {
-        const v = String(row[mapping.groupName] ?? '').trim()
-        if (v) data.groupName = v
-      }
-      if (mapping.neighborhood) {
-        const v = String(row[mapping.neighborhood] ?? '').trim()
-        if (v) data.neighborhood = v
-      }
-
-      const existing = await prisma.contact.findUnique({ where: { normalizedPhone } })
-
-      if (existing) {
-        await prisma.contact.update({ where: { normalizedPhone }, data })
-        updated++
-      } else {
-        await prisma.contact.create({ data })
-        imported++
-      }
+      const result = await prisma.contact.createMany({ data: newRows.map(r => r.data), skipDuplicates: true })
+      imported = result.count
     } catch (err: any) {
-      errors++
-      errorDetails.push({ row: i + 2, error: err.message })
+      errors += newRows.length
+      errorDetails.push({ row: 'batch_create', error: err.message })
+    }
+  }
+
+  // 5. Update existing in chunks of 50 (parallel within each chunk)
+  const CHUNK = 50
+  for (let i = 0; i < updateRows.length; i += CHUNK) {
+    const chunk = updateRows.slice(i, i + CHUNK)
+    try {
+      await prisma.$transaction(chunk.map(r =>
+        prisma.contact.update({ where: { normalizedPhone: r.data.normalizedPhone }, data: r.data })
+      ))
+      updated += chunk.length
+    } catch (err: any) {
+      errors += chunk.length
+      errorDetails.push({ row: `chunk_${i}`, error: err.message })
     }
   }
 
   await prisma.importLog.create({
-    data: {
-      fileName: 'import.xlsx',
-      totalRows: rows.length,
-      imported,
-      updated,
-      skipped,
-      errors,
-      errorDetails,
-      userId,
-    },
+    data: { fileName: 'import.xlsx', totalRows: rows.length, imported, updated, skipped, errors, errorDetails, userId },
   })
 
   return { imported, updated, skipped, errors, errorDetails }
