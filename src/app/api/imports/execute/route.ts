@@ -13,8 +13,13 @@ export async function POST(req: NextRequest) {
   const mappingRaw = formData.get('mapping') as string
   if (!file || !mappingRaw) return NextResponse.json({ error: 'Missing data' }, { status: 400 })
 
-  const mapping = JSON.parse(mappingRaw)
-  const buffer = Buffer.from(await file.arrayBuffer())
-  const result = await executeImport(buffer, mapping, (session.user as any).id ?? '')
-  return NextResponse.json(result)
+  try {
+    const mapping = JSON.parse(mappingRaw)
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const result = await executeImport(buffer, mapping, (session.user as any).id ?? '')
+    return NextResponse.json(result)
+  } catch (err: any) {
+    console.error('[import] Error:', err)
+    return NextResponse.json({ error: err.message ?? 'Erro interno' }, { status: 500 })
+  }
 }
