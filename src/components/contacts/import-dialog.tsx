@@ -54,17 +54,26 @@ export function ImportDialog({ open, onClose, onSuccess }: Props) {
     if (!file) return
     setStep('importing')
     setProgress(30)
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('mapping', JSON.stringify(mapping))
-    setProgress(60)
-    const res = await fetch('/api/imports/execute', { method: 'POST', body: fd })
-    const data = await res.json()
-    setProgress(100)
-    setResult(data)
-    setStep('done')
-    onSuccess()
-    toast.success(`Importação: ${data.imported} novos, ${data.updated} atualizados`)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('mapping', JSON.stringify(mapping))
+      setProgress(60)
+      const res = await fetch('/api/imports/execute', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `Erro HTTP ${res.status}` }))
+        throw new Error(err.error ?? `Erro ${res.status}`)
+      }
+      const data = await res.json()
+      setProgress(100)
+      setResult(data)
+      setStep('done')
+      onSuccess()
+      toast.success(`Importação: ${data.imported} novos, ${data.updated} atualizados`)
+    } catch (err: any) {
+      setStep('map')
+      toast.error(`Falha na importação: ${err.message}`)
+    }
   }
 
   function handleClose() {

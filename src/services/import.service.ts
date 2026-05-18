@@ -132,19 +132,20 @@ export async function executeImport(
     }
   }
 
-  // 5. Update existing in chunks of 50 (parallel within each chunk)
+  // 5. Update existing in parallel batches of 50
   const CHUNK = 50
   for (let i = 0; i < updateRows.length; i += CHUNK) {
     const chunk = updateRows.slice(i, i + CHUNK)
-    try {
-      await prisma.$transaction(chunk.map(r =>
+    const results = await Promise.all(
+      chunk.map(r =>
         prisma.contact.update({ where: { normalizedPhone: r.data.normalizedPhone }, data: r.data })
-      ))
-      updated += chunk.length
-    } catch (err: any) {
-      errors += chunk.length
-      errorDetails.push({ row: `chunk_${i}`, error: err.message })
-    }
+          .then(() => true)
+          .catch((err: any) => { errorDetails.push({ row: r.rowIndex, error: err.message }); return false })
+      )
+    )
+    const succeeded = results.filter(Boolean).length
+    updated += succeeded
+    errors += chunk.length - succeeded
   }
 
   await prisma.importLog.create({
