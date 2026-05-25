@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (event !== 'messages.upsert') {
+    if (event !== 'messages.upsert' && event !== 'MESSAGES_UPSERT') {
       return NextResponse.json({ success: true, skipped: true })
     }
 
